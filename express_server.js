@@ -48,9 +48,20 @@ app.get("/set", (req, res) => {
 
  app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
+  console.log(generateRandomString(6));
   res.send("Ok");         // Respond with 'Ok' (we will replace this)
 });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+const generateRandomString = function (length) {
+  let randomString = [];
+  
+  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz';
+  for (let i = 0; i < length; i++) {
+    randomString.push(characters.charAt(Math.floor(Math.random() * characters.length)))  
+  }
+  return randomString.join('');
+}
