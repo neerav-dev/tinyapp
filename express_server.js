@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
+const userHelperConstructor = require('./helpers/userHelpers');
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -26,9 +27,11 @@ const users = {
   }
 };
 
+const {authenticateUser, fetchUser, createUser, generateRandomString} = userHelperConstructor(users);
+
 //ROUTES
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = fetchUser(req.cookies["user_id"]);
   const templateVars = {urlList: urlDatabase, user};
   res.render('urls_index', templateVars);
 });
@@ -85,16 +88,8 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-//LOGIN
-app.post("/login", (req, res) => {
-  const {username} = req.body;
-  res.cookie('username', username);
-  res.redirect("/urls");
-});
-
 //LOGOUT
 app.post("/logout", (req, res) => {
-  //const {username} = req.body;
   res.clearCookie("user_id");
   res.redirect("/urls");
 });
@@ -102,38 +97,11 @@ app.post("/logout", (req, res) => {
 //REGISTER
 app.get("/register", (req, res) => {
   const templateVars = {user: null};
+
   res.render("urls_register", templateVars);
 });
 
-const fetchUser = email => {
-  for (const userID in users) {
-    const user = users[userID];
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
-};
 
-const createUser = userParams => {
-  const id = generateRandomString(8);
-  const {email, password} = userParams;
-  
-  if (email) {
-    const userExist = fetchUser(email);
-    if (userExist) {
-      return {error: "User Already Exist!", data: null};
-    }
-    if (password) {
-      users[id] = {id, email, password};
-      return {error: null, data: users[id]};
-    } else {
-      return {error: "Password Required!", data: null};
-    }
-  } else {
-    return {error: "Email Required!", data: null};
-  }
-};
 
 app.post("/register", (req, res) => {
   const result = createUser(req.body);
@@ -146,17 +114,26 @@ app.post("/register", (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+//LOGIN
+app.get("/login", (req, res) => {
+  const templateVars = {user: null};
+  
+  res.render("urls_login", templateVars);
 });
 
-const generateRandomString = function(length) {
-  let randomString = [];
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz';
+app.post("/login", (req, res) => {
+  const result = authenticateUser(req.body);
   
-  for (let i = 0; i < length; i++) {
-    randomString.push(characters.charAt(Math.floor(Math.random() * characters.length)));
+  if (result.error) {
+    res.statusCode = 403;
+    res.send(result.error);
+  } else {
+    res.cookie('user_id', result.data.email);
+    res.redirect(`/urls`);
   }
-  
-  return randomString.join('');
-};
+});
+
+
+app.listen(PORT, () => {
+  console.log(`TinyApp listening on port ${PORT}!`);
+});
