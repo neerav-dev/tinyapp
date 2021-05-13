@@ -29,7 +29,7 @@ const users = {
 };
 
 const {authenticateUser, fetchUser, createUser} = userHelperConstructor(users);
-const {urlsForUser, createUrl} = urlHelperConstructor(urlDatabase);
+const {urlsForUser, createUrl, validateUser} = urlHelperConstructor(urlDatabase);
 //ROUTES
 
 
@@ -38,7 +38,7 @@ app.get("/urls", (req, res) => {
   const user = fetchUser(req.cookies["user_id"]);
   let urlList = null;
   if (user) {
-    urlList = urlsForUser(user.id);
+    urlList = urlsForUser(user);
   }
   const templateVars = {urlList, user};
   
@@ -57,12 +57,17 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const {shortURL} = req.params;
-  const longURL = urlDatabase[shortURL].longURL;
   const user = fetchUser(req.cookies["user_id"]);
-  const templateVars = {shortURL, longURL, user};
 
-  res.render('urls_show', templateVars);
+  if (!user) {
+    res.redirect("/login");
+  } else {
+    const {shortURL} = req.params;
+    const longURL = urlDatabase[shortURL].longURL;
+    const templateVars = {shortURL, longURL, user};
+    
+    res.render('urls_show', templateVars);    
+  } 
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -72,11 +77,11 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
-//ADD
+//ADD URL
 app.post("/urls", (req, res) => {
   const user = fetchUser(req.cookies["user_id"]);
   if (user) {
-    const result = createUrl(req.body, user.id);
+    const result = createUrl(req.body, user);
     if (result.error) {
       res.statusCode = 400;
       res.send(result.error);
@@ -86,24 +91,37 @@ app.post("/urls", (req, res) => {
   }  
 });
 
-
-//DELETE
+//DELETE URL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const {shortURL} = req.params;
+  const user = fetchUser(req.cookies["user_id"]);
   
-  delete urlDatabase[shortURL];
-  
-  res.redirect("/urls");
+  if (user) {
+    const result = validateUser(req.params, user);
+    if (result.error) {
+      res.statusCode = 400;
+      res.send(result.error);
+    } else {
+      delete urlDatabase[result.data];
+      res.redirect("/urls");
+    }
+  }  
 });
 
-//UPDATE
+//UPDATE URL
 app.post("/urls/:shortURL", (req, res) => {
-  const {shortURL} = req.params;
+  const user = fetchUser(req.cookies["user_id"]);
   const {longURL} = req.body;
-  
-  urlDatabase[shortURL] = longURL;
-  
-  res.redirect(`/urls/${shortURL}`);
+
+  if (user) {
+    const result = validateUser(req.params, user);
+    if (result.error) {
+      res.statusCode = 400;
+      res.send(result.error);
+    } else {
+      urlDatabase[result.data] = longURL;
+      res.redirect(`/urls/${result.data}`);
+    }
+  }  
 });
 
 //LOGOUT
@@ -118,8 +136,6 @@ app.get("/register", (req, res) => {
 
   res.render("urls_register", templateVars);
 });
-
-
 
 app.post("/register", (req, res) => {
   const result = createUser(req.body);
