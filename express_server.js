@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require('body-parser');
-const cookieParser = require("cookie-parser");
+const cookieSession = require('cookie-session');
 const userHelperConstructor = require('./helpers/userHelpers');
 const urlHelperConstructor = require('./helpers/urlHelpers');
 const bcrypt = require('bcrypt');
@@ -9,7 +9,11 @@ const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
+
 app.use(bodyParser.urlencoded({extended: true}));
 
 const urlDatabase = {
@@ -40,7 +44,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
   let urlList = null;
   if (user) {
     urlList = urlsForUser(user);
@@ -51,7 +55,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
   
   if (!user) {
     res.redirect("/login");
@@ -62,7 +66,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
 
   if (!user) {
     res.redirect("/login");
@@ -84,7 +88,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 //ADD URL
 app.post("/urls", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
   if (user) {
     const result = createUrl(req.body, user);
     if (result.error) {
@@ -98,7 +102,7 @@ app.post("/urls", (req, res) => {
 
 //DELETE URL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
   
   if (user) {
     const result = validateUser(req.params, user);
@@ -114,7 +118,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //UPDATE URL
 app.post("/urls/:shortURL", (req, res) => {
-  const user = fetchUser(req.cookies["user_id"]);
+  const user = fetchUser(req.session['user_id']);
   const {longURL} = req.body;
 
   if (user) {
@@ -131,7 +135,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
 //LOGOUT
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/urls");
 });
 
@@ -148,7 +152,7 @@ app.post("/register", (req, res) => {
     res.statusCode = 400;
     res.send(result.error);
   } else {
-    res.cookie('user_id', result.data.email);
+    req.session['user_id'] = result.data.email;
     res.redirect(`/urls`);
   }
 });
@@ -167,7 +171,7 @@ app.post("/login", (req, res) => {
     res.statusCode = 403;
     res.send(result.error);
   } else {
-    res.cookie('user_id', result.data.email);
+    req.session['user_id'] = result.data.email;
     res.redirect(`/urls`);
   }
 });
