@@ -1,15 +1,6 @@
+const generateRandomString = require('./helpers');
+
 const userHelperConstructor = db => {
-  
-  const generateRandomString = function(length) {
-    let randomString = [];
-    let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz';
-    
-    for (let i = 0; i < length; i++) {
-      randomString.push(characters.charAt(Math.floor(Math.random() * characters.length)));
-    }
-    
-    return randomString.join('');
-  };
   
   const fetchUser = (email) => {
     for (const userID in db) {
@@ -18,6 +9,7 @@ const userHelperConstructor = db => {
         return user;
       }
     }
+    
     return null;
   };
   

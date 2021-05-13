@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const userHelperConstructor = require('./helpers/userHelpers');
+const urlHelperConstructor = require('./helpers/urlHelpers');
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -15,10 +16,10 @@ const urlDatabase = {
 };
 
 const users = {
-  "userRandomID": {
-    id: "userRandomID",
+  "u$er1": {
+    id: "aJ48lW",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: "user"
   },
   "user2RandomID": {
     id: "user2RandomID",
@@ -27,18 +28,26 @@ const users = {
   }
 };
 
-const {authenticateUser, fetchUser, createUser, generateRandomString} = userHelperConstructor(users);
-
+const {authenticateUser, fetchUser, createUser} = userHelperConstructor(users);
+const {urlsForUser, createUrl} = urlHelperConstructor(urlDatabase);
 //ROUTES
+
+
+
 app.get("/urls", (req, res) => {
   const user = fetchUser(req.cookies["user_id"]);
-  const templateVars = {urlList: urlDatabase, user};
+  let urlList = null;
+  if (user) {
+    urlList = urlsForUser(user.id);
+  }
+  const templateVars = {urlList, user};
+  
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
   const user = fetchUser(req.cookies["user_id"]);
-  console.log(user)
+  
   if (!user) {
     res.redirect("/login");
   } else {
@@ -50,7 +59,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const {shortURL} = req.params;
   const longURL = urlDatabase[shortURL].longURL;
-  const user = fetchUser(req.cookies["user_id"]);;
+  const user = fetchUser(req.cookies["user_id"]);
   const templateVars = {shortURL, longURL, user};
 
   res.render('urls_show', templateVars);
@@ -65,12 +74,16 @@ app.get("/u/:shortURL", (req, res) => {
 
 //ADD
 app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString(6);
-  const {longURL} = req.body;
-
-  urlDatabase[shortURL] = longURL;
-
-  res.redirect(`/urls/${shortURL}`);
+  const user = fetchUser(req.cookies["user_id"]);
+  if (user) {
+    const result = createUrl(req.body, user.id);
+    if (result.error) {
+      res.statusCode = 400;
+      res.send(result.error);
+    } else {
+      res.redirect(`/urls/${result.data}`);
+    }
+  }  
 });
 
 
