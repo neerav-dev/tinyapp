@@ -10,14 +10,12 @@ const userHelperConstructor = db => {
         return user;
       }
     }
-    
     return null;
   };
   
   const createUser = (userParams) => {
     const id = generateRandomString(8);
     const {email, password} = userParams;
-    
     if (email) {
       const userExist = getUserByEmail(email, db);
       if (userExist) {
@@ -48,7 +46,7 @@ const userHelperConstructor = db => {
     }
   };
   
-  return {authenticateUser, getUserByEmail, createUser};
+  return {authenticateUser, createUser};
 };
 
 module.exports = userHelperConstructor;

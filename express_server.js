@@ -34,7 +34,7 @@ const users = {
   }
 };
 
-const {authenticateUser, getUserByEmail, createUser} = userHelperConstructor(users);
+const {authenticateUser, createUser} = userHelperConstructor(users);
 const {urlsForUser, createUrl, validateUser} = urlHelperConstructor(urlDatabase);
 
 //ROUTES
@@ -44,39 +44,39 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
+  const currentUserId =  req.session['user_id'];
   let urlList = null;
-  if (user) {
-    urlList = urlsForUser(user);
+  if (currentUserId) {
+    urlList = urlsForUser(currentUserId);
   }
-  const templateVars = {urlList, user};
+  const templateVars = {urlList, email: req.session['email']};
   
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
+  const currentUserId =  req.session['user_id'];
   
-  if (!user) {
+  if (!currentUserId) {
     res.redirect("/login");
   } else {
-    const templateVars = {urlList: urlDatabase, user};
+    const templateVars = {urlList: urlDatabase, email: req.session['email']};
     res.render("urls_new", templateVars);
   }
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
+  const currentUserId =  req.session['user_id'];
 
-  if (!user) {
+  if (!currentUserId) {
     res.redirect("/login");
   } else {
     const {shortURL} = req.params;
     const longURL = urlDatabase[shortURL].longURL;
-    const templateVars = {shortURL, longURL, user};
+    const templateVars = {shortURL, longURL, email: req.session['email']};
     
-    res.render('urls_show', templateVars);    
-  } 
+    res.render('urls_show', templateVars);
+  }
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -88,24 +88,27 @@ app.get("/u/:shortURL", (req, res) => {
 
 //ADD URL
 app.post("/urls", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
-  if (user) {
-    const result = createUrl(req.body, user);
+  const currentUserId =  req.session['user_id'];
+  if (currentUserId) {
+    const result = createUrl(req.body, currentUserId);
     if (result.error) {
       res.statusCode = 400;
-      res.send(result.error);
+      res.send(`<html><body><scrip><h1>${result.error}</h1></body></html>`);
     } else {
       res.redirect(`/urls/${result.data}`);
     }
-  }  
+  } else {
+    res.statusCode = 403;
+    res.send(`<html><body><scrip><h1>Unauthorized operation!</h1></body></html>`);
+  }
 });
 
 //DELETE URL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
+  const currentUserId =  req.session['user_id'];
   
-  if (user) {
-    const result = validateUser(req.params, user);
+  if (currentUserId) {
+    const result = validateUser(req.params, currentUserId);
     if (result.error) {
       res.statusCode = 400;
       res.send(result.error);
@@ -113,24 +116,30 @@ app.post("/urls/:shortURL/delete", (req, res) => {
       delete urlDatabase[result.data];
       res.redirect("/urls");
     }
-  }  
+  } else {
+    res.statusCode = 403;
+    res.send(`<html><body><scrip><h1>Unauthorized operation!</h1></body></html>`);
+  }
 });
 
 //UPDATE URL
 app.post("/urls/:shortURL", (req, res) => {
-  const user = getUserByEmail(req.session['user_id']);
+  const currentUserId =  req.session['user_id'];
   const {longURL} = req.body;
 
-  if (user) {
-    const result = validateUser(req.params, user);
+  if (currentUserId) {
+    const result = validateUser(req.params, currentUserId);
     if (result.error) {
       res.statusCode = 400;
-      res.send(result.error);
+      res.send(`<html><body><scrip><h1>${result.error}</h1></body></html>`);
     } else {
-      urlDatabase[result.data] = longURL;
+      urlDatabase[result.data] = {longURL, userID: currentUserId};
       res.redirect(`/urls/${result.data}`);
     }
-  }  
+  } else {
+    res.statusCode = 403;
+    res.send(`<html><body><scrip><h1>Unauthorized operation!</h1></body></html>`);
+  }
 });
 
 //LOGOUT
@@ -141,8 +150,7 @@ app.post("/logout", (req, res) => {
 
 //REGISTER
 app.get("/register", (req, res) => {
-  const templateVars = {user: null};
-
+  const templateVars = {email: undefined};
   res.render("urls_register", templateVars);
 });
 
@@ -150,17 +158,17 @@ app.post("/register", (req, res) => {
   const result = createUser(req.body);
   if (result.error) {
     res.statusCode = 400;
-    res.send(result.error);
+    res.send(`<html><body><scrip><h1>${result.error}</h1></body></html>`);
   } else {
-    req.session['user_id'] = result.data.email;
+    req.session['user_id'] = result.data.id;
+    req.session['email'] = result.data.email;
     res.redirect(`/urls`);
   }
 });
 
 //LOGIN
 app.get("/login", (req, res) => {
-  const templateVars = {user: null};
-  
+  const templateVars = {email: undefined};
   res.render("urls_login", templateVars);
 });
 
@@ -169,9 +177,10 @@ app.post("/login", (req, res) => {
   
   if (result.error) {
     res.statusCode = 403;
-    res.send(result.error);
+    res.send(`<html><body><scrip><h1>${result.error}</h1></body></html>`);
   } else {
-    req.session['user_id'] = result.data.email;
+    req.session['user_id'] = result.data.id;
+    req.session['email'] = result.data.email;
     res.redirect(`/urls`);
   }
 });

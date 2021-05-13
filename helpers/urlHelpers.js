@@ -2,12 +2,11 @@ const generateRandomString = require('./helpers');
 
 const urlHelperConstructor = db => {
   
-  const urlsForUser = (userParams) => {
+  const urlsForUser = (userId) => {
     let urls = {};
-    const {id} = userParams;
     for (const urlID in db) {
       const url = db[urlID];
-      if (url.userID === id) {
+      if (url.userID === userId) {
         urls[urlID] = url;
       }
     }
@@ -15,20 +14,19 @@ const urlHelperConstructor = db => {
     return urls;
   };
   
-  const createUrl = (urlParams, userParams) => {
+  const createUrl = (urlParams, currentUserId) => {
     const shortURL = generateRandomString(6);
     const {longURL} = urlParams;
-    const {id} = userParams;
     
-    db[shortURL] = {longURL, userID:id};
+    db[shortURL] = {longURL, userID: currentUserId};
     
-    return {error: null, data: shortURL};    
+    return {error: null, data: shortURL};
   };
 
-  const validateUser = (urlParams, userParams) => {
+  const validateUser = (urlParams, currentUserId) => {
     const {shortURL} = urlParams;
-    const {id} = userParams;
-    if (db[shortURL].userID === id) {
+    
+    if (db[shortURL].userID === currentUserId) {
       return {error: null, data: shortURL};
     }
     return {error: "Unauthorized operation!", data: null};
