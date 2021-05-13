@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 const userHelperConstructor = db => {
   
-  const fetchUser = (email) => {
+  const getUserByEmail = (email) => {
     for (const userID in db) {
       const user = db[userID];
       if (user.email === email) {
@@ -19,7 +19,7 @@ const userHelperConstructor = db => {
     const {email, password} = userParams;
     
     if (email) {
-      const userExist = fetchUser(email, db);
+      const userExist = getUserByEmail(email, db);
       if (userExist) {
         return {error: "User Already Exist!", data: null};
       }
@@ -36,7 +36,7 @@ const userHelperConstructor = db => {
   
   const authenticateUser = (userParams) => {
     const {email, password} = userParams;
-    const user = fetchUser(email, db);
+    const user = getUserByEmail(email, db);
     if (user) {
       if (bcrypt.compareSync(password, user.password)) {
         return {error: null, data: user};
@@ -48,7 +48,7 @@ const userHelperConstructor = db => {
     }
   };
   
-  return {authenticateUser, fetchUser, createUser, generateRandomString};
+  return {authenticateUser, getUserByEmail, createUser};
 };
 
 module.exports = userHelperConstructor;

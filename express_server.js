@@ -34,7 +34,7 @@ const users = {
   }
 };
 
-const {authenticateUser, fetchUser, createUser} = userHelperConstructor(users);
+const {authenticateUser, getUserByEmail, createUser} = userHelperConstructor(users);
 const {urlsForUser, createUrl, validateUser} = urlHelperConstructor(urlDatabase);
 
 //ROUTES
@@ -44,7 +44,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
   let urlList = null;
   if (user) {
     urlList = urlsForUser(user);
@@ -55,7 +55,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
   
   if (!user) {
     res.redirect("/login");
@@ -66,7 +66,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
 
   if (!user) {
     res.redirect("/login");
@@ -88,7 +88,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 //ADD URL
 app.post("/urls", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
   if (user) {
     const result = createUrl(req.body, user);
     if (result.error) {
@@ -102,7 +102,7 @@ app.post("/urls", (req, res) => {
 
 //DELETE URL
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
   
   if (user) {
     const result = validateUser(req.params, user);
@@ -118,7 +118,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //UPDATE URL
 app.post("/urls/:shortURL", (req, res) => {
-  const user = fetchUser(req.session['user_id']);
+  const user = getUserByEmail(req.session['user_id']);
   const {longURL} = req.body;
 
   if (user) {
