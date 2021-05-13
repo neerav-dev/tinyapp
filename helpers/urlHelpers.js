@@ -7,7 +7,6 @@ const urlHelperConstructor = db => {
     const {id} = userParams;
     for (const urlID in db) {
       const url = db[urlID];
-      console.log(url)
       if (url.userID === id) {
         urls[urlID] = url;
       }

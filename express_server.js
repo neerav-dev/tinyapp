@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const userHelperConstructor = require('./helpers/userHelpers');
 const urlHelperConstructor = require('./helpers/urlHelpers');
+const bcrypt = require('bcrypt');
+
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -19,20 +21,23 @@ const users = {
   "u$er1": {
     id: "aJ48lW",
     email: "user@example.com",
-    password: "user"
+    password: bcrypt.hashSync("user", 10)
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 };
 
 const {authenticateUser, fetchUser, createUser} = userHelperConstructor(users);
 const {urlsForUser, createUrl, validateUser} = urlHelperConstructor(urlDatabase);
+
 //ROUTES
 
-
+app.get("/", (req, res) => {
+  res.redirect("/urls");
+});
 
 app.get("/urls", (req, res) => {
   const user = fetchUser(req.cookies["user_id"]);

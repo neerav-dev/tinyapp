@@ -1,4 +1,5 @@
 const generateRandomString = require('./helpers');
+const bcrypt = require('bcrypt');
 
 const userHelperConstructor = db => {
   
@@ -23,7 +24,7 @@ const userHelperConstructor = db => {
         return {error: "User Already Exist!", data: null};
       }
       if (password) {
-        db[id] = {id, email, password};
+        db[id] = {id, email, password: bcrypt.hashSync(password, 10)};
         return {error: null, data: db[id]};
       } else {
         return {error: "Password Required!", data: null};
@@ -37,7 +38,7 @@ const userHelperConstructor = db => {
     const {email, password} = userParams;
     const user = fetchUser(email, db);
     if (user) {
-      if (user.password === password) {
+      if (bcrypt.compareSync(password, user.password)) {
         return {error: null, data: user};
       } else {
         return {error: "Invalid Password!", data: null};
